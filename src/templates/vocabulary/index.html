@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "vocabulary/base_vocab.html" %}
 
 {% block title %}Home - Sophia's Vocabulary Trainer{% endblock %}
 
@@ -32,8 +32,8 @@
     </div>
     
     <div class="button-group">
-        <a href="/add_word" class="btn">➕ Add Today's Word</a>
-        <a href="/quiz" class="btn btn-secondary">🎯 Practice Quiz</a>
+        <a href="{{ url_for('add_word') }}" class="btn">➕ Add Today's Word</a>
+        <a href="{{ url_for('quiz') }}" class="btn btn-secondary">🎯 Practice Quiz</a>
     </div>
 </div>
 

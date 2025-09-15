@@ -69,8 +69,13 @@ class Milestone(db.Model):
     
 # Routes
 @app.route('/')
-def index():
-    """Home page with dashboard"""
+def home():
+    """Main landing page with menu"""
+    return render_template('home.html')
+
+@app.route('/vocabulary')
+def vocabulary_index():
+    """Vocabulary trainer dashboard"""
     total_words = VocabularyWord.query.count()
     words_today = VocabularyWord.query.filter_by(date_added=date.today()).count()
     
@@ -87,14 +92,14 @@ def index():
     words = VocabularyWord.query.all()
     avg_mastery = sum(w.mastery_level for w in words) / len(words) if words else 0
     
-    return render_template('index.html', 
+    return render_template('vocabulary/index.html', 
                          total_words=total_words,
                          words_today=words_today,
                          progress_percentage=progress_percentage,
                          milestones=milestones,
                          avg_mastery=avg_mastery)
 
-@app.route('/add_word', methods=['GET', 'POST'])
+@app.route('/vocabulary/add_word', methods=['GET', 'POST'])
 def add_word():
     """Add a new vocabulary word"""
     if request.method == 'POST':
@@ -115,9 +120,9 @@ def add_word():
         else:
             flash('Please provide both word and definition!', 'error')
     
-    return render_template('add_word.html')
+    return render_template('vocabulary/add_word.html')
 
-@app.route('/words')
+@app.route('/vocabulary/words')
 def view_words():
     """View all vocabulary words"""
     sort_by = request.args.get('sort', 'date_desc')
@@ -131,9 +136,9 @@ def view_words():
     else:  # date_desc
         words = VocabularyWord.query.order_by(VocabularyWord.date_added.desc()).all()
     
-    return render_template('view_words.html', words=words, sort_by=sort_by)
+    return render_template('vocabulary/view_words.html', words=words, sort_by=sort_by)
 
-@app.route('/delete_word/<int:word_id>')
+@app.route('/vocabulary/delete_word/<int:word_id>')
 def delete_word(word_id):
     """Delete a vocabulary word"""
     word = VocabularyWord.query.get_or_404(word_id)
@@ -142,7 +147,7 @@ def delete_word(word_id):
     flash(f'Deleted "{word.word}"', 'info')
     return redirect(url_for('view_words'))
 
-@app.route('/quiz')
+@app.route('/vocabulary/quiz')
 def quiz():
     """Start a vocabulary quiz"""
     # Get words that need review (prioritize less mastered words)
@@ -150,7 +155,7 @@ def quiz():
     
     if len(words) < 4:
         flash('You need at least 4 words to start a quiz!', 'warning')
-        return redirect(url_for('index'))
+        return redirect(url_for('vocabulary_index'))
     
     # Select a random word for the question
     question_word = random.choice(words)
@@ -161,11 +166,11 @@ def quiz():
     options.extend(random.sample(other_words, min(3, len(other_words))))
     random.shuffle(options)
     
-    return render_template('quiz.html', 
+    return render_template('vocabulary/quiz.html', 
                          question_word=question_word,
                          options=options)
 
-@app.route('/quiz/check', methods=['POST'])
+@app.route('/vocabulary/quiz/check', methods=['POST'])
 def check_quiz():
     """Check quiz answer"""
     word_id = request.form.get('word_id', type=int)
@@ -193,7 +198,7 @@ def check_quiz():
         'mastery_level': word.mastery_level
     })
 
-@app.route('/progress')
+@app.route('/vocabulary/progress')
 def progress():
     """View learning progress"""
     words = VocabularyWord.query.all()
@@ -214,14 +219,14 @@ def progress():
     # Recent quiz history
     recent_quizzes = QuizHistory.query.order_by(QuizHistory.date_taken.desc()).limit(10).all()
     
-    return render_template('progress.html',
+    return render_template('vocabulary/progress.html',
                          total_words=len(words),
                          total_reviews=total_reviews,
                          overall_accuracy=overall_accuracy,
                          mastery_levels=mastery_levels,
                          recent_quizzes=recent_quizzes)
 
-@app.route('/milestones')
+@app.route('/vocabulary/milestones')
 def milestones():
     """View and manage milestones"""
     milestones = Milestone.query.order_by(Milestone.target_date).all()
@@ -240,7 +245,7 @@ def milestones():
             'words_per_day': max(1, int(words_per_day + 0.5))  # Round up
         })
     
-    return render_template('milestones.html', 
+    return render_template('vocabulary/milestones.html', 
                          milestone_data=milestone_data,
                          total_words=total_words)
 

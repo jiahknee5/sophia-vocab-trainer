@@ -427,12 +427,13 @@
                 <h1>📚 Sophia's Vocab Trainer</h1>
                 <button class="menu-toggle" onclick="toggleMenu()">Menu</button>
                 <ul class="nav-menu" id="navMenu">
-                    <li><a href="/">🏠 Home</a></li>
-                    <li><a href="/add_word">➕ Add Word</a></li>
-                    <li><a href="/words">📖 My Words</a></li>
-                    <li><a href="/quiz">🎯 Quiz</a></li>
-                    <li><a href="/progress">📊 Progress</a></li>
-                    <li><a href="/milestones">🏆 Goals</a></li>
+                    <li><a href="{{ url_for('home') }}">🏠 Home</a></li>
+                    <li><a href="{{ url_for('vocabulary_index') }}">📊 Dashboard</a></li>
+                    <li><a href="{{ url_for('add_word') }}">➕ Add Word</a></li>
+                    <li><a href="{{ url_for('view_words') }}">📖 My Words</a></li>
+                    <li><a href="{{ url_for('quiz') }}">🎯 Quiz</a></li>
+                    <li><a href="{{ url_for('progress') }}">📈 Progress</a></li>
+                    <li><a href="{{ url_for('milestones') }}">🏆 Goals</a></li>
                 </ul>
             </nav>
         </div>
