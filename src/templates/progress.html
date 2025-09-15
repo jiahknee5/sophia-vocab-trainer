@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Progress - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: var(--primary-color); margin-bottom: 30px;">📊 Your Learning Progress</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div style="background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; padding: 25px; border-radius: 20px; text-align: center;">
+            <h3 style="font-size: 3em; margin: 0;">{{ total_words }}</h3>
+            <p style="font-size: 1.2em; margin: 5px 0;">Words Learned</p>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #4ECDC4, #44A08D); color: white; padding: 25px; border-radius: 20px; text-align: center;">
+            <h3 style="font-size: 3em; margin: 0;">{{ total_reviews }}</h3>
+            <p style="font-size: 1.2em; margin: 5px 0;">Total Reviews</p>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #667EEA, #764BA2); color: white; padding: 25px; border-radius: 20px; text-align: center;">
+            <h3 style="font-size: 3em; margin: 0;">{{ "%.1f"|format(overall_accuracy) }}%</h3>
+            <p style="font-size: 1.2em; margin: 5px 0;">Overall Accuracy</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="color: var(--primary-color); margin-bottom: 20px;">📈 Mastery Distribution</h3>
+    
+    <div style="display: grid; gap: 15px;">
+        {% for level, count in mastery_levels.items() %}
+        {% set percentage = (count / total_words * 100) if total_words > 0 else 0 %}
+        <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold;">{{ level }}</span>
+                <span>{{ count }} words ({{ "%.1f"|format(percentage) }}%)</span>
+            </div>
+            <div class="progress-bar" style="height: 25px;">
+                <div class="progress-fill" style="width: {{ percentage }}%; 
+                     background: {% if 'Mastered' in level %}var(--success-color){% elif 'Good' in level %}var(--secondary-color){% elif 'Practicing' in level %}var(--accent-color){% else %}var(--warning-color){% endif %};">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="color: var(--primary-color); margin-bottom: 20px;">🏅 Achievement Badges</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; text-align: center;">
+        {% if total_words >= 10 %}
+        <div style="background: #FFD700; padding: 20px; border-radius: 15px;">
+            <div style="font-size: 3em;">🌟</div>
+            <p style="font-weight: bold; margin-top: 10px;">First 10 Words!</p>
+        </div>
+        {% endif %}
+        
+        {% if total_words >= 50 %}
+        <div style="background: #C0C0C0; padding: 20px; border-radius: 15px;">
+            <div style="font-size: 3em;">⭐</div>
+            <p style="font-weight: bold; margin-top: 10px;">50 Word Master!</p>
+        </div>
+        {% endif %}
+        
+        {% if total_words >= 100 %}
+        <div style="background: #CD7F32; padding: 20px; border-radius: 15px;">
+            <div style="font-size: 3em;">🏆</div>
+            <p style="font-weight: bold; margin-top: 10px;">Century Club!</p>
+        </div>
+        {% endif %}
+        
+        {% if overall_accuracy >= 80 %}
+        <div style="background: var(--success-color); padding: 20px; border-radius: 15px;">
+            <div style="font-size: 3em;">🎯</div>
+            <p style="font-weight: bold; margin-top: 10px;">Accuracy Expert!</p>
+        </div>
+        {% endif %}
+        
+        {% if total_reviews >= 100 %}
+        <div style="background: var(--secondary-color); padding: 20px; border-radius: 15px; color: white;">
+            <div style="font-size: 3em;">📚</div>
+            <p style="font-weight: bold; margin-top: 10px;">Study Champion!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" style="background: linear-gradient(135deg, #667EEA, #764BA2); color: white; text-align: center;">
+    <h3 style="font-size: 2em; margin-bottom: 20px;">Keep up the amazing work, Sophia! 🌈</h3>
+    <p style="font-size: 1.3em;">
+        {% if overall_accuracy >= 80 %}
+        You're doing fantastic! Your accuracy is outstanding! 
+        {% elif overall_accuracy >= 60 %}
+        Great progress! Keep practicing and you'll master these words!
+        {% else %}
+        Every mistake is a chance to learn. You're getting better every day!
+        {% endif %}
+    </p>
+</div>
+{% endblock %}

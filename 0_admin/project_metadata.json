@@ -1,0 +1,42 @@
+{
+    "project_name": "Sophia's PSAT/SHSAT Vocabulary Trainer",
+    "project_id": "sophia-vocab-trainer",
+    "category": "apps",
+    "status": "active",
+    "created_date": "2024-01-15",
+    "description": "Interactive vocabulary learning web application for Sophia's PSAT and SHSAT preparation",
+    "target_user": "Sophia (12 years old)",
+    "key_features": [
+        "Daily vocabulary word tracking",
+        "Interactive quiz system",
+        "Progress visualization",
+        "Milestone tracking for key dates",
+        "Achievement badges",
+        "Kid-friendly interface"
+    ],
+    "technology_stack": {
+        "backend": "Flask (Python)",
+        "database": "SQLite",
+        "frontend": "HTML, CSS, JavaScript",
+        "deployment": "Local development server"
+    },
+    "milestones": [
+        {
+            "name": "Winter Goal",
+            "date": "2025-12-31",
+            "target_words": 365
+        },
+        {
+            "name": "Spring Goal",
+            "date": "2026-03-31",
+            "target_words": 455
+        },
+        {
+            "name": "Summer Goal",
+            "date": "2026-06-30",
+            "target_words": 545
+        }
+    ],
+    "access_url": "http://localhost:5005",
+    "repository": "/Volumes/project_chimera/projects/sophia-vocab-trainer"
+}

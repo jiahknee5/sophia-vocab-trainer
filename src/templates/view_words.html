@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}My Words - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="margin-bottom: 20px;">
+        <h2 style="color: var(--primary-color); margin-bottom: 15px;">📖 My Words ({{ words|length }})</h2>
+        <div style="margin-bottom: 15px;">
+            <label for="sort" style="font-size: 0.9em; margin-bottom: 5px;">Sort by:</label>
+            <select id="sort" onchange="window.location.href='/words?sort=' + this.value" 
+                    style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #E0E0E0; 
+                           font-family: inherit; font-size: 16px; -webkit-appearance: none; 
+                           background: white url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M10.293%203.293L6%207.586%201.707%203.293A1%201%200%200%200%20.293%204.707l5%205a1%201%200%200%200%201.414%200l5-5a1%201%200%201%200-1.414-1.414z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px center;
+                           background-size: 12px;">
+                <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
+                <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
+                <option value="alpha" {% if sort_by == 'alpha' %}selected{% endif %}>Alphabetical</option>
+                <option value="mastery" {% if sort_by == 'mastery' %}selected{% endif %}>Mastery Level</option>
+            </select>
+        </div>
+    </div>
+    
+    {% if words %}
+        <div>
+            {% for word in words %}
+            <div class="word-card" style="border-left-color: 
+                 {% if word.mastery_level > 75 %}var(--success-color)
+                 {% elif word.mastery_level > 50 %}var(--secondary-color)
+                 {% elif word.mastery_level > 25 %}var(--accent-color)
+                 {% else %}var(--warning-color){% endif %};">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <h3 style="margin: 0;">{{ word.word }}</h3>
+                    <a href="/delete_word/{{ word.id }}" class="btn btn-small" 
+                       style="background: #E74C3C; padding: 8px 15px; font-size: 0.85em;" 
+                       onclick="return confirm('Delete \'{{ word.word }}\'?')">
+                        🗑️
+                    </a>
+                </div>
+                <p style="margin-bottom: 10px; line-height: 1.5;">{{ word.definition }}</p>
+                <div class="word-stats">
+                    <span>📅 {{ word.date_added.strftime('%b %d') }}</span>
+                    <span>📊 {{ word.mastery_level }}%</span>
+                    <span>✅ {{ word.get_accuracy() }}%</span>
+                    <span>📝 {{ word.times_reviewed }}x</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px 20px;">
+            <h3 style="color: #999; margin-bottom: 15px;">No words yet!</h3>
+            <p style="margin-bottom: 20px; color: #666;">Start building your vocabulary today.</p>
+            <a href="/add_word" class="btn">➕ Add Your First Word</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+[Unit]
+Description=Sophia's Vocabulary Trainer Web Application
+After=network.target
+
+[Service]
+Type=simple
+User=johnnychung
+WorkingDirectory=/Volumes/project_chimera/projects/sophia-vocab-trainer
+Environment="PATH=/Volumes/project_chimera/project_chimera_env/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/Volumes/project_chimera/project_chimera_env/bin/python /Volumes/project_chimera/projects/sophia-vocab-trainer/start_server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Add Word - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: var(--primary-color); margin-bottom: 30px;">➕ Add a New Word</h2>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="word">Word:</label>
+            <input type="text" id="word" name="word" required autofocus 
+                   placeholder="Enter the vocabulary word">
+        </div>
+        
+        <div class="form-group">
+            <label for="definition">Definition:</label>
+            <textarea id="definition" name="definition" rows="4" required 
+                      placeholder="What does this word mean?"></textarea>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button type="submit" class="btn">
+                💾 Save Word
+            </button>
+            <a href="/words" class="btn btn-secondary" style="margin-left: 10px;">
+                📖 View All Words
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="background: #FFF3CD; border: 2px solid #FFD700;">
+    <h3 style="color: #856404;">💡 Tips for Learning New Words:</h3>
+    <ul style="margin-left: 20px; line-height: 2;">
+        <li>Try to use the new word in a sentence</li>
+        <li>Think of words that sound similar or have similar meanings</li>
+        <li>Create a mental picture of what the word means</li>
+        <li>Review your words regularly - practice makes perfect!</li>
+    </ul>
+</div>
+{% endblock %}

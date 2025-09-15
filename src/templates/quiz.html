@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: var(--primary-color); text-align: center; margin-bottom: 25px;">🎯 Vocabulary Quiz</h2>
+    
+    <div id="quiz-container">
+        <div style="background: var(--accent-color); padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 25px;">
+            <h3 style="font-size: 1.8em; margin-bottom: 10px;">{{ question_word.word }}</h3>
+            <p style="font-size: 1.1em;">Choose the correct definition:</p>
+        </div>
+        
+        <form id="quiz-form">
+            <input type="hidden" id="word_id" value="{{ question_word.id }}">
+            <div>
+                {% for option in options %}
+                <button type="button" class="quiz-option" data-id="{{ option.id }}">
+                    {{ option.definition }}
+                </button>
+                {% endfor %}
+            </div>
+        </form>
+        
+        <div id="result" style="margin-top: 25px; text-align: center; display: none;">
+            <p id="result-message" style="font-size: 1.3em; margin-bottom: 20px; line-height: 1.4;"></p>
+            <div class="button-group">
+                <a href="/quiz" class="btn">Next Question ➡️</a>
+                <a href="/" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .quiz-option:hover {
+        border-color: var(--primary-color) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .quiz-option.selected {
+        border-color: var(--secondary-color) !important;
+        background: var(--secondary-color) !important;
+        color: white;
+    }
+    
+    .quiz-option.correct {
+        border-color: var(--success-color) !important;
+        background: var(--success-color) !important;
+        animation: pulse 0.5s;
+    }
+    
+    .quiz-option.incorrect {
+        border-color: #E74C3C !important;
+        background: #FFCDD2 !important;
+        animation: shake 0.5s;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+    
+    /* Confetti styles */
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        animation: fall linear;
+    }
+    
+    @keyframes fall {
+        to {
+            transform: translateY(calc(100vh + 20px)) rotate(360deg);
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const quizOptions = document.querySelectorAll('.quiz-option');
+    let answered = false;
+    
+    quizOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            if (answered) return;
+            
+            // Mark as selected
+            quizOptions.forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            
+            // Submit answer
+            const wordId = document.getElementById('word_id').value;
+            const answerId = this.dataset.id;
+            
+            fetch('/quiz/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `word_id=${wordId}&answer_id=${answerId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                answered = true;
+                
+                // Show result
+                if (data.correct) {
+                    this.classList.add('correct');
+                    createConfetti();
+                } else {
+                    this.classList.add('incorrect');
+                    // Highlight correct answer
+                    quizOptions.forEach(opt => {
+                        if (opt.dataset.id === wordId) {
+                            opt.classList.add('correct');
+                        }
+                    });
+                }
+                
+                // Show result message
+                document.getElementById('result-message').textContent = data.message;
+                document.getElementById('result').style.display = 'block';
+                
+                // Disable all options
+                quizOptions.forEach(opt => {
+                    opt.style.cursor = 'default';
+                    opt.disabled = true;
+                });
+                
+                // Scroll to result on mobile
+                setTimeout(() => {
+                    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        });
+    });
+    
+    // Improved confetti for mobile
+    function createConfetti() {
+        const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#A3BE8C', '#B48EAD'];
+        const confettiCount = 30; // Fewer particles for better mobile performance
+        
+        for (let i = 0; i < confettiCount; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-20px';
+                confetti.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                
+                document.body.appendChild(confetti);
+                
+                confetti.addEventListener('animationend', () => confetti.remove());
+            }, i * 30); // Stagger creation for better effect
+        }
+    }
+</script>
+{% endblock %}
