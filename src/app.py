@@ -17,11 +17,19 @@ load_dotenv()
 # Create Flask app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sophia-vocab-trainer-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL', 
-    'sqlite:////tmp/vocab_trainer.db'
-)
+
+# Database configuration
+database_url = os.environ.get('DATABASE_URL', 'sqlite:////tmp/vocab_trainer.db')
+# Fix for Vercel Postgres URL format
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
 
 # Initialize database
 db = SQLAlchemy(app)
