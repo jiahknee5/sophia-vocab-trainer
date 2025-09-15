@@ -28,7 +28,8 @@
   },
   "functions": {
     "api/index.py": {
-      "includeFiles": "src/**"
+      "includeFiles": "src/**/*",
+      "runtime": "python3.9"
     }
   }
 }

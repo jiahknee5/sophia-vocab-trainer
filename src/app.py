@@ -285,12 +285,12 @@ _db_initialized = False
 def ensure_database():
     """Ensure database is initialized before handling requests"""
     global _db_initialized
-    if not _db_initialized:
+    if not _db_initialized and request.endpoint not in ['health', 'debug']:
         try:
             initialize_database()
             _db_initialized = True
         except Exception as e:
-            print(f"Database initialization deferred: {e}")
+            app.logger.warning(f"Database initialization deferred: {e}")
 
 # For local development, initialize immediately
 if __name__ == '__main__':
