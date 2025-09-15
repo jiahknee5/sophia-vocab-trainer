@@ -3,12 +3,12 @@ Sophia's PSAT/SHSAT Vocabulary Trainer
 A simple web application to help Sophia learn vocabulary words for test prep
 """
 
+import os
+import random
+from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import datetime, date, timedelta
-import random
-import os
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -68,6 +68,15 @@ class Milestone(db.Model):
     target_words = db.Column(db.Integer, nullable=False)
     
 # Routes
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'database_url': bool(os.environ.get('DATABASE_URL')),
+        'templates_path': os.path.exists(os.path.join(app.root_path, 'templates'))
+    })
+
 @app.route('/')
 def home():
     """Main landing page with menu"""
@@ -252,7 +261,7 @@ def milestones():
 # Initialize database and add default milestones
 def initialize_database():
     """Create tables and add default milestones"""
-    with app.app_context():
+    try:
         db.create_all()
         
         # Add default milestones if they don't exist
@@ -265,12 +274,28 @@ def initialize_database():
             for m in milestones:
                 db.session.add(m)
             db.session.commit()
+    except Exception as e:
+        # In serverless, database might not be ready yet
+        print(f"Database initialization warning: {e}")
 
-# Call initialization when module loads
-with app.app_context():
-    initialize_database()
+# Track if database has been initialized
+_db_initialized = False
 
+@app.before_request
+def ensure_database():
+    """Ensure database is initialized before handling requests"""
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            initialize_database()
+            _db_initialized = True
+        except Exception as e:
+            print(f"Database initialization deferred: {e}")
+
+# For local development, initialize immediately
 if __name__ == '__main__':
+    with app.app_context():
+        initialize_database()
     # Run on all interfaces for Tailscale access
     # use_reloader=False to avoid path issues
     app.run(host='0.0.0.0', port=5005, debug=True, use_reloader=False)
