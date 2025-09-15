@@ -14,8 +14,22 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Determine the correct paths for templates and static files
+import sys
+if 'api' in sys.path[0]:
+    # Running in Vercel
+    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    static_dir = os.path.join(os.path.dirname(__file__), 'static')
+else:
+    # Running locally
+    template_dir = 'templates'
+    static_dir = 'static'
+
 # Create Flask app
-app = Flask(__name__, static_folder='static', static_url_path='/static')
+app = Flask(__name__, 
+            template_folder=template_dir,
+            static_folder=static_dir, 
+            static_url_path='/static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sophia-vocab-trainer-2024')
 
 # Database configuration
@@ -74,7 +88,12 @@ def health():
     return jsonify({
         'status': 'ok',
         'database_url': bool(os.environ.get('DATABASE_URL')),
-        'templates_path': os.path.exists(os.path.join(app.root_path, 'templates'))
+        'template_folder': app.template_folder,
+        'static_folder': app.static_folder,
+        'root_path': app.root_path,
+        'templates_exist': os.path.exists(os.path.join(app.root_path, app.template_folder or 'templates')),
+        'home_template_exists': os.path.exists(os.path.join(app.root_path, app.template_folder or 'templates', 'home.html')),
+        'cwd': os.getcwd()
     })
 
 @app.route('/')

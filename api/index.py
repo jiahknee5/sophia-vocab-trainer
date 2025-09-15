@@ -11,8 +11,21 @@ try:
     src_path = str(Path(__file__).parent.parent / 'src')
     sys.path.insert(0, src_path)
     
-    # Import the Flask app
-    from app import app
+    # Also add parent directory
+    parent_path = str(Path(__file__).parent.parent)
+    sys.path.insert(0, parent_path)
+    
+    # Try multiple import methods
+    try:
+        # Method 1: Direct from src
+        from src.app import app
+    except ImportError:
+        try:
+            # Method 2: From current directory app module
+            from app import app
+        except ImportError:
+            # Method 3: From api.app
+            from api.app import app
     
     # Create a debug endpoint to help diagnose issues
     @app.route('/debug')

@@ -5,12 +5,9 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "15mb"
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.9"
       }
-    },
-    {
-      "src": "src/static/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -23,13 +20,10 @@
       "dest": "/api/index.py"
     }
   ],
-  "env": {
-    "FLASK_ENV": "production"
-  },
   "functions": {
     "api/index.py": {
-      "includeFiles": "src/**/*",
-      "runtime": "python3.9"
+      "includeFiles": "{src/**,src/**/*,src/**/**/*}",
+      "excludeFiles": "{src/**/*.pyc,src/**/__pycache__/**}"
     }
   }
 }
