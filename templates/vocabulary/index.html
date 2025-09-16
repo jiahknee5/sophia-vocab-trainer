@@ -1,0 +1,64 @@
+{% extends "vocabulary/base_vocab.html" %}
+
+{% block title %}Home - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: var(--primary-color); text-align: center; margin-bottom: 20px;">
+        Welcome, Sophia! 🌟
+    </h2>
+    
+    <div class="stat-grid">
+        <div class="stat-card" style="background: var(--accent-color);">
+            <h3>{{ total_words }}</h3>
+            <p>Total Words</p>
+        </div>
+        <div class="stat-card" style="background: var(--success-color);">
+            <h3>{{ words_today }}</h3>
+            <p>Added Today</p>
+        </div>
+        <div class="stat-card" style="background: var(--secondary-color); color: white;">
+            <h3>{{ "%.0f"|format(avg_mastery) }}%</h3>
+            <p>Avg Mastery</p>
+        </div>
+    </div>
+    
+    <h3>Daily Progress</h3>
+    <p style="text-align: center; margin-bottom: 10px;">Goal: 1 Word Per Day</p>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ progress_percentage }}%">
+            {{ "%.1f"|format(progress_percentage) }}%
+        </div>
+    </div>
+    
+    <div class="button-group">
+        <a href="{{ url_for('add_word') }}" class="btn">➕ Add Today's Word</a>
+        <a href="{{ url_for('quiz') }}" class="btn btn-secondary">🎯 Practice Quiz</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="color: var(--primary-color);">🎯 Your Goals</h3>
+    {% for milestone in milestones %}
+    <div style="margin-bottom: 20px; padding: 15px; background: var(--bg-color); border-radius: 10px;">
+        <h4 style="margin-bottom: 5px;">{{ milestone.name }}</h4>
+        <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">
+            {{ milestone.target_date.strftime('%B %d, %Y') }} • {{ milestone.target_words }} words
+        </p>
+        {% set progress = (total_words / milestone.target_words * 100) if milestone.target_words > 0 else 0 %}
+        <div class="progress-bar" style="height: 25px;">
+            <div class="progress-fill" style="width: {{ progress }}%; font-size: 0.85em;">
+                {{ "%.1f"|format(progress) }}%
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card" style="background: linear-gradient(135deg, #FFE5B4, #FFD700); text-align: center;">
+    <h3 style="margin-bottom: 10px;">💫 Daily Tip</h3>
+    <p style="font-size: 1.1em; font-style: italic;">
+        "Every new word is a superpower! Keep learning!"
+    </p>
+</div>
+{% endblock %}

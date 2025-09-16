@@ -1,0 +1,85 @@
+{% extends "vocabulary/base_vocab.html" %}
+
+{% block title %}Goals - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: var(--primary-color); margin-bottom: 30px;">🏆 Your Learning Goals</h2>
+    
+    <div style="background: var(--accent-color); padding: 20px; border-radius: 15px; margin-bottom: 30px; text-align: center;">
+        <h3 style="font-size: 2em; margin: 0;">Current Progress: {{ total_words }} Words</h3>
+        <p style="margin: 10px 0; font-size: 1.2em;">Keep going! You're doing great! 🌟</p>
+    </div>
+    
+    <div style="display: grid; gap: 20px;">
+        {% for data in milestone_data %}
+        <div class="card" style="border: 3px solid 
+             {% if data.words_needed <= 0 %}var(--success-color){% elif data.days_until < 30 %}var(--warning-color){% else %}var(--secondary-color){% endif %};">
+            
+            <h3 style="font-size: 1.8em; color: var(--primary-color); margin-bottom: 15px;">
+                {{ data.milestone.name }}
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 15px; background: var(--bg-color); border-radius: 10px;">
+                    <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ data.milestone.target_date.strftime('%b %d') }}</p>
+                    <p style="margin: 0;">Target Date</p>
+                </div>
+                
+                <div style="text-align: center; padding: 15px; background: var(--bg-color); border-radius: 10px;">
+                    <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ data.days_until }}</p>
+                    <p style="margin: 0;">Days Left</p>
+                </div>
+                
+                <div style="text-align: center; padding: 15px; background: var(--bg-color); border-radius: 10px;">
+                    <p style="font-size: 2em; margin: 0; font-weight: bold;">{{ data.milestone.target_words }}</p>
+                    <p style="margin: 0;">Target Words</p>
+                </div>
+            </div>
+            
+            {% if data.words_needed > 0 %}
+                <div style="background: #FFF3CD; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <p style="margin: 0; font-size: 1.1em;">
+                        📝 You need <strong>{{ data.words_needed }} more words</strong> to reach this goal!
+                    </p>
+                    <p style="margin: 5px 0 0 0;">
+                        That's about <strong>{{ data.words_per_day }} word{{ 's' if data.words_per_day != 1 else '' }} per day</strong>.
+                    </p>
+                </div>
+            {% else %}
+                <div style="background: var(--success-color); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <p style="margin: 0; font-size: 1.2em; text-align: center;">
+                        🎉 <strong>Congratulations! You've reached this goal!</strong> 🎉
+                    </p>
+                </div>
+            {% endif %}
+            
+            <div class="progress-bar" style="height: 35px;">
+                {% set progress = (total_words / data.milestone.target_words * 100) if data.milestone.target_words > 0 else 0 %}
+                <div class="progress-fill" style="width: {{ min(progress, 100) }}%">
+                    {{ "%.1f"|format(min(progress, 100)) }}%
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card" style="background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white;">
+    <h3 style="margin-bottom: 20px;">📅 Daily Study Tips</h3>
+    <ul style="margin-left: 20px; line-height: 2; font-size: 1.1em;">
+        <li>Try to study at the same time each day to build a habit</li>
+        <li>Review yesterday's word before learning today's new word</li>
+        <li>Use your new words in conversations or writing</li>
+        <li>Take the quiz regularly to reinforce what you've learned</li>
+        <li>Celebrate your progress - every word counts!</li>
+    </ul>
+</div>
+
+<div class="card" style="text-align: center;">
+    <h3 style="color: var(--primary-color); margin-bottom: 20px;">Ready to add today's word?</h3>
+    <a href="/add_word" class="btn" style="font-size: 1.3em; padding: 15px 40px;">
+        ➕ Add New Word
+    </a>
+</div>
+{% endblock %}
