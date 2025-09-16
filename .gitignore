@@ -49,3 +49,4 @@ htmlcov/
 
 # Database
 vocab_trainer.db
+.env*.local

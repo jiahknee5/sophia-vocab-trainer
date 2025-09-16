@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Database table creation script for Vercel Postgres
-Run this after setting up your Vercel Postgres database
+Database table creation script for PostgreSQL (Vercel Postgres or Supabase)
+Run this after setting up your database
 """
 
 import os
@@ -10,7 +10,8 @@ from sqlalchemy import create_engine, text
 from datetime import date
 
 # Load environment variables
-load_dotenv()
+load_dotenv('.env.local')  # Try local first
+load_dotenv()  # Then fallback to .env
 
 def create_database_tables():
     """Create all necessary tables for the vocabulary trainer"""
