@@ -179,10 +179,10 @@ def vocabulary_index():
     """Vocabulary trainer dashboard"""
     total_words = VocabularyWord.query.count()
     words_today = VocabularyWord.query.filter_by(date_added=date.today()).count()
-    
-    # Calculate progress
-    start_date = date(2024, 1, 1)  # Adjust as needed
-    days_elapsed = (date.today() - start_date).days
+
+    # Calculate progress from Sept 3, 2025
+    start_date = date(2025, 9, 3)
+    days_elapsed = max(0, (date.today() - start_date).days)
     target_pace = days_elapsed  # 1 word per day
     progress_percentage = min((total_words / target_pace * 100) if target_pace > 0 else 0, 100)
     
@@ -624,6 +624,37 @@ def edit_milestone(milestone_id):
                          days_until=days_until,
                          words_needed=words_needed)
 
+@app.route('/vocabulary/update_goals')
+def update_goals():
+    """Update goals to be 1 word per day from Sept 3, 2025"""
+    try:
+        # Calculate days from Sept 3, 2025 to each target date
+        start_date = date(2025, 9, 3)
+
+        # Update Winter Goal
+        winter = Milestone.query.filter_by(name="Winter Goal").first()
+        if winter:
+            winter.target_date = date(2025, 12, 31)
+            winter.target_words = 119  # Sept 3 to Dec 31 = 119 days
+
+        # Update Spring Goal
+        spring = Milestone.query.filter_by(name="Spring Goal").first()
+        if spring:
+            spring.target_date = date(2026, 3, 31)
+            spring.target_words = 209  # Sept 3 to Mar 31 = 209 days
+
+        # Update Summer Goal
+        summer = Milestone.query.filter_by(name="Summer Goal").first()
+        if summer:
+            summer.target_date = date(2026, 6, 30)
+            summer.target_words = 300  # Sept 3 to Jun 30 = 300 days
+
+        db.session.commit()
+
+        return "Goals updated to 1 word per day starting from Sept 3, 2025! <a href='/vocabulary/milestones'>View goals</a>"
+    except Exception as e:
+        return f"Error updating goals: {str(e)}"
+
 @app.route('/vocabulary/restore_words')
 def restore_words():
     """Restore the vocabulary words that were in the database before"""
@@ -781,10 +812,25 @@ def initialize_database():
         # Add default milestones if they don't exist
         try:
             if Milestone.query.count() == 0:
+                # Calculate days from Sept 3, 2025 to each target date
+                start_date = date(2025, 9, 3)
+
+                # Winter Goal: Sept 3 to Dec 31, 2025 = 119 days
+                winter_date = date(2025, 12, 31)
+                winter_days = (winter_date - start_date).days
+
+                # Spring Goal: Sept 3 to Mar 31, 2026 = 209 days
+                spring_date = date(2026, 3, 31)
+                spring_days = (spring_date - start_date).days
+
+                # Summer Goal: Sept 3 to Jun 30, 2026 = 300 days
+                summer_date = date(2026, 6, 30)
+                summer_days = (summer_date - start_date).days
+
                 milestones = [
-                    Milestone(name="Winter Goal", target_date=date(2025, 12, 31), target_words=365),
-                    Milestone(name="Spring Goal", target_date=date(2026, 3, 31), target_words=455),
-                    Milestone(name="Summer Goal", target_date=date(2026, 6, 30), target_words=545)
+                    Milestone(name="Winter Goal", target_date=winter_date, target_words=winter_days),  # 119 words
+                    Milestone(name="Spring Goal", target_date=spring_date, target_words=spring_days),  # 209 words
+                    Milestone(name="Summer Goal", target_date=summer_date, target_words=summer_days)   # 300 words
                 ]
                 for m in milestones:
                     db.session.add(m)
