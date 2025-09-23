@@ -601,10 +601,45 @@ def delete_milestone(milestone_id):
 
 # Initialize database and add default milestones
 def initialize_database():
-    """Create tables and add default milestones"""
+    """Create tables and add default milestones with migration support"""
     try:
+        # Create all tables (won't affect existing ones)
         db.create_all()
-        
+
+        # Safely add missing columns for existing tables
+        try:
+            # Test if columns exist by trying to query them
+            test_word = VocabularyWord.query.first()
+            if test_word:
+                # Try to access new fields - will error if they don't exist
+                _ = test_word.difficulty_score
+        except:
+            # If error, columns don't exist - need migration
+            try:
+                # Try to add missing columns
+                with db.engine.begin() as conn:
+                    # SQLite doesn't support information_schema, so we try each column
+                    migration_commands = [
+                        "ALTER TABLE vocabulary_word ADD COLUMN difficulty_score FLOAT DEFAULT 50.0",
+                        "ALTER TABLE vocabulary_word ADD COLUMN streak INTEGER DEFAULT 0",
+                        "ALTER TABLE vocabulary_word ADD COLUMN last_response_time FLOAT",
+                        "ALTER TABLE vocabulary_word ADD COLUMN review_interval INTEGER DEFAULT 1",
+                        "ALTER TABLE vocabulary_word ADD COLUMN next_review_date DATE"
+                    ]
+                    for cmd in migration_commands:
+                        try:
+                            conn.execute(db.text(cmd))
+                        except:
+                            pass  # Column already exists
+            except Exception as e:
+                print(f"Migration warning: {e}")
+
+        # Ensure UserProfile exists
+        if UserProfile.query.count() == 0:
+            default_user = UserProfile()
+            db.session.add(default_user)
+            db.session.commit()
+
         # Add default milestones if they don't exist
         if Milestone.query.count() == 0:
             milestones = [
