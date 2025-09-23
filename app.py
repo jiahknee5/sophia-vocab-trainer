@@ -547,29 +547,25 @@ def progress():
 @app.route('/vocabulary/milestones')
 def milestones():
     """View and manage milestones"""
-    try:
-        milestones = Milestone.query.order_by(Milestone.target_date).all()
-        total_words = VocabularyWord.query.count()
+    milestones = Milestone.query.order_by(Milestone.target_date).all()
+    total_words = VocabularyWord.query.count()
 
-        milestone_data = []
-        for milestone in milestones:
-            days_until = (milestone.target_date - date.today()).days
-            words_needed = milestone.target_words - total_words
-            words_per_day = words_needed / days_until if days_until > 0 else 0
+    milestone_data = []
+    for milestone in milestones:
+        days_until = (milestone.target_date - date.today()).days
+        words_needed = milestone.target_words - total_words
+        words_per_day = words_needed / days_until if days_until > 0 else 0
 
-            milestone_data.append({
-                'milestone': milestone,
-                'days_until': days_until,
-                'words_needed': max(0, words_needed),
-                'words_per_day': max(1, int(words_per_day + 0.5))  # Round up
-            })
+        milestone_data.append({
+            'milestone': milestone,
+            'days_until': days_until,
+            'words_needed': max(0, words_needed),
+            'words_per_day': max(1, int(words_per_day + 0.5))  # Round up
+        })
 
-        return render_template('vocabulary/milestones.html',
-                             milestone_data=milestone_data,
-                             total_words=total_words)
-    except Exception as e:
-        # Return error for debugging
-        return f"Error in milestones route: {str(e)}<br>Please try <a href='/vocabulary/reset_db'>resetting the database</a>"
+    return render_template('vocabulary/milestones.html',
+                         milestone_data=milestone_data,
+                         total_words=total_words)
 
 @app.route('/vocabulary/milestones/add', methods=['GET', 'POST'])
 def add_milestone():
