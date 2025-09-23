@@ -287,6 +287,7 @@ def add_milestone():
 def edit_milestone(milestone_id):
     """Edit an existing milestone"""
     milestone = Milestone.query.get_or_404(milestone_id)
+    total_words = VocabularyWord.query.count()
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -306,7 +307,15 @@ def edit_milestone(milestone_id):
         else:
             flash('Please fill in all fields!', 'error')
 
-    return render_template('vocabulary/edit_milestone.html', milestone=milestone)
+    # Calculate words needed info for display
+    days_until = (milestone.target_date - date.today()).days
+    words_needed = milestone.target_words - total_words
+
+    return render_template('vocabulary/edit_milestone.html',
+                         milestone=milestone,
+                         total_words=total_words,
+                         days_until=days_until,
+                         words_needed=words_needed)
 
 @app.route('/vocabulary/milestones/delete/<int:milestone_id>')
 def delete_milestone(milestone_id):

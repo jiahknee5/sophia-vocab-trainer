@@ -35,11 +35,15 @@
             <input type="number" id="target_words" name="target_words" required min="1"
                    value="{{ milestone.target_words }}"
                    placeholder="e.g., 100"
+                   onchange="calculateProgress()"
                    style="width: 100%; padding: 12px; border: 2px solid #E0E0E0;
                           border-radius: 10px; font-size: 16px; font-family: inherit;">
-            <p style="margin-top: 8px; color: #666; font-size: 0.9em;">
-                Tip: Aim for about 1 word per day for steady progress!
-            </p>
+            <div id="progress-info" style="margin-top: 10px; padding: 10px; background: #f0f9ff; border-radius: 8px; font-size: 0.9em;">
+                <p style="margin: 5px 0;">📊 Current words: <strong>{{ total_words }}</strong></p>
+                <p style="margin: 5px 0;">📅 Days until target: <strong>{{ days_until }}</strong> days</p>
+                <p style="margin: 5px 0;" id="words-needed">📝 Words needed: <strong>{{ max(0, milestone.target_words - total_words) }}</strong></p>
+                <p style="margin: 5px 0;" id="daily-rate">⏱️ Daily rate needed: <strong>{{ "%.1f"|format(max(0, milestone.target_words - total_words) / max(1, days_until)) }}</strong> words/day</p>
+            </div>
         </div>
 
         <div style="display: flex; gap: 10px; justify-content: center;">
@@ -53,16 +57,35 @@
     </form>
 </div>
 
-<div class="card" style="background: linear-gradient(135deg, var(--secondary-color), var(--accent-color)); color: white;">
-    <h3 style="margin-bottom: 15px;">📊 Current Progress</h3>
-    {% set total_words = get_flashed_messages(category_filter=["total_words"])|first or 0 %}
-    <p style="line-height: 1.8;">
-        You currently have <strong>{{ total_words }}</strong> words in your vocabulary.
-        {% if total_words < milestone.target_words %}
-            You need <strong>{{ milestone.target_words - total_words }}</strong> more words to reach this goal.
-        {% else %}
-            You've already exceeded this goal by <strong>{{ total_words - milestone.target_words }}</strong> words! 🎉
-        {% endif %}
-    </p>
-</div>
+<script>
+function calculateProgress() {
+    const targetWords = parseInt(document.getElementById('target_words').value) || 0;
+    const targetDate = document.getElementById('target_date').value;
+    const currentWords = {{ total_words }};
+
+    if (targetDate) {
+        const target = new Date(targetDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const daysUntil = Math.max(1, Math.ceil((target - today) / (1000 * 60 * 60 * 24)));
+
+        const wordsNeeded = Math.max(0, targetWords - currentWords);
+        const dailyRate = (wordsNeeded / daysUntil).toFixed(1);
+
+        document.getElementById('words-needed').innerHTML = `📝 Words needed: <strong>${wordsNeeded}</strong>`;
+        document.getElementById('daily-rate').innerHTML = `⏱️ Daily rate needed: <strong>${dailyRate}</strong> words/day`;
+
+        // Update days until display
+        const daysDisplay = document.querySelector('#progress-info p:nth-child(2)');
+        if (daysDisplay) {
+            daysDisplay.innerHTML = `📅 Days until target: <strong>${daysUntil}</strong> days`;
+        }
+    }
+}
+
+// Add event listener for date changes
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('target_date').addEventListener('change', calculateProgress);
+});
+</script>
 {% endblock %}
