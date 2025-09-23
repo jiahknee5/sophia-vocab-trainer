@@ -1,24 +1,59 @@
 {% extends "vocabulary/base_vocab.html" %}
 
-{% block title %}Quiz - Sophia's Vocabulary Trainer{% endblock %}
+{% block title %}Adaptive Quiz - Sophia's Vocabulary Trainer{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2 style="color: var(--primary-color); text-align: center; margin-bottom: 25px;">🎯 Vocabulary Quiz</h2>
+    <!-- Level and XP Bar -->
+    <div id="user-stats" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+                                color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div>
+                <span style="font-size: 1.2em;">Level {{ user.level }}</span>
+                <span style="margin-left: 15px;">🔥 {{ user.current_streak }} day streak</span>
+            </div>
+            <div>
+                <span class="difficulty-badge" style="background: rgba(255,255,255,0.3); padding: 5px 15px;
+                                                      border-radius: 20px;">{{ difficulty }} Mode</span>
+            </div>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; height: 20px;">
+            <div id="xp-bar" style="background: linear-gradient(90deg, #FFD700, #FFA500); height: 100%;
+                                    width: {{ (user.experience_points % 100) }}%; transition: width 0.5s ease;">
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 5px; font-size: 0.9em;">
+            XP: {{ user.experience_points }} / {{ ((user.level) ** 2) * 100 }}
+        </div>
+    </div>
+
+    <h2 style="color: var(--primary-color); text-align: center; margin-bottom: 20px;">🎯 Adaptive Vocabulary Quiz</h2>
 
     <!-- Progress indicator -->
     <div id="quiz-progress" style="margin-bottom: 20px; text-align: center;">
         <span id="question-counter" style="font-size: 1.1em; color: var(--secondary-color);"></span>
+        <div id="confidence-meter" style="margin-top: 10px;">
+            <small>Confidence: {{ "%.0f"|format(user.confidence_score) }}%</small>
+            <div style="background: #e0e0e0; border-radius: 5px; height: 8px; margin-top: 5px;">
+                <div style="background: linear-gradient(90deg, #FF6B6B, #4ECDC4); height: 100%;
+                           width: {{ user.confidence_score }}%; border-radius: 5px; transition: width 0.5s;">
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="quiz-container">
         <div style="background: var(--accent-color); padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 25px;">
             <h3 style="font-size: 1.8em; margin-bottom: 10px;">{{ question_word.word }}</h3>
-            <p style="font-size: 1.1em;">Choose the correct definition:</p>
+            {% if question_word.streak > 0 %}
+                <span style="font-size: 0.9em; color: #FFD700;">🔥 Streak: {{ question_word.streak }}</span>
+            {% endif %}
+            <p style="font-size: 1.1em; margin-top: 10px;">Choose the correct definition:</p>
         </div>
-        
+
         <form id="quiz-form">
             <input type="hidden" id="word_id" value="{{ question_word.id }}">
+            <input type="hidden" id="start_time" value="">
             <div>
                 {% for option in options %}
                 <button type="button" class="quiz-option" data-id="{{ option.id }}">
@@ -27,9 +62,11 @@
                 {% endfor %}
             </div>
         </form>
-        
+
         <div id="result" style="margin-top: 25px; text-align: center; display: none;">
-            <p id="result-message" style="font-size: 1.3em; margin-bottom: 20px; line-height: 1.4;"></p>
+            <p id="result-message" style="font-size: 1.3em; margin-bottom: 10px; line-height: 1.4;"></p>
+            <div id="xp-gained" style="font-size: 1.1em; color: #FFD700; margin-bottom: 10px;"></div>
+            <div id="achievement-popup" style="display: none; margin-bottom: 15px;"></div>
             <div id="auto-advance" style="font-size: 0.9em; color: #666; margin-bottom: 15px;"></div>
             <div class="button-group">
                 <button type="button" onclick="nextQuestion()" class="btn" id="next-btn">Next Question ➡️</button>
@@ -39,58 +76,109 @@
     </div>
 </div>
 
+<!-- Achievement notification -->
+<div id="achievement-notification" style="position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #667eea, #764ba2);
+                                          color: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                                          display: none; z-index: 1000; animation: slideIn 0.5s;">
+    <h3 style="margin: 0 0 10px 0;">🏆 Achievement Unlocked!</h3>
+    <p id="achievement-text" style="margin: 0;"></p>
+</div>
+
 <style>
+    .quiz-option {
+        position: relative;
+        overflow: hidden;
+    }
+
     .quiz-option:hover {
         border-color: var(--primary-color) !important;
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
-    
+
     .quiz-option.selected {
         border-color: var(--secondary-color) !important;
         background: var(--secondary-color) !important;
         color: white;
     }
-    
+
     .quiz-option.correct {
         border-color: var(--success-color) !important;
         background: var(--success-color) !important;
         animation: pulse 0.5s;
     }
-    
+
     .quiz-option.incorrect {
         border-color: #E74C3C !important;
         background: #FFCDD2 !important;
         animation: shake 0.5s;
     }
-    
+
     @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
     }
-    
+
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
         25% { transform: translateX(-10px); }
         75% { transform: translateX(10px); }
     }
-    
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .difficulty-badge {
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.8em;
+        letter-spacing: 1px;
+    }
+
     /* Confetti styles */
     .confetti {
         position: fixed;
         width: 10px;
         height: 10px;
-        border-radius: 50%;
         pointer-events: none;
         z-index: 9999;
         animation: fall linear;
     }
-    
+
     @keyframes fall {
         to {
             transform: translateY(calc(100vh + 20px)) rotate(360deg);
             opacity: 0;
+        }
+    }
+
+    .xp-animation {
+        animation: floatUp 2s ease-out;
+        position: fixed;
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #FFD700;
+        pointer-events: none;
+        z-index: 9998;
+    }
+
+    @keyframes floatUp {
+        0% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-100px);
         }
     }
 </style>
@@ -103,6 +191,10 @@
     let correctCount = parseInt(sessionStorage.getItem('quizCorrect') || '0');
     let totalCount = parseInt(sessionStorage.getItem('quizTotal') || '0');
     let autoAdvanceTimer = null;
+    let startTime = Date.now();
+
+    // Set start time
+    document.getElementById('start_time').value = startTime;
 
     // Update question counter
     function updateQuestionCounter() {
@@ -121,9 +213,45 @@
         window.location.href = '/vocabulary/quiz';
     }
 
+    // Show achievement notification
+    function showAchievement(achievement) {
+        const notification = document.getElementById('achievement-notification');
+        const text = document.getElementById('achievement-text');
+
+        if (achievement.type === 'level_up') {
+            text.textContent = `You reached Level ${achievement.level}!`;
+        } else if (achievement.type === 'word_mastered') {
+            text.textContent = `Mastered "${achievement.word}"!`;
+        } else if (achievement.type === 'streak_5') {
+            text.textContent = `5 streak on "${achievement.word}"!`;
+        }
+
+        notification.style.display = 'block';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 5000);
+    }
+
+    // Animate XP gain
+    function animateXP(xpGained, element) {
+        const xpElement = document.createElement('div');
+        xpElement.className = 'xp-animation';
+        xpElement.textContent = `+${xpGained} XP`;
+
+        const rect = element.getBoundingClientRect();
+        xpElement.style.left = rect.left + rect.width / 2 + 'px';
+        xpElement.style.top = rect.top + 'px';
+
+        document.body.appendChild(xpElement);
+        setTimeout(() => xpElement.remove(), 2000);
+    }
+
     quizOptions.forEach(option => {
         option.addEventListener('click', function() {
             if (answered) return;
+
+            // Calculate response time
+            const responseTime = (Date.now() - startTime) / 1000;
 
             // Mark as selected
             quizOptions.forEach(opt => opt.classList.remove('selected'));
@@ -138,7 +266,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `word_id=${wordId}&answer_id=${answerId}`
+                body: `word_id=${wordId}&answer_id=${answerId}&response_time=${responseTime}`
             })
             .then(response => response.json())
             .then(data => {
@@ -150,6 +278,11 @@
                     this.classList.add('correct');
                     correctCount++;
                     createConfetti();
+
+                    // Animate XP gain
+                    if (data.xp_gained) {
+                        animateXP(data.xp_gained, this);
+                    }
                 } else {
                     this.classList.add('incorrect');
                     // Highlight correct answer
@@ -164,9 +297,26 @@
                 sessionStorage.setItem('quizCorrect', correctCount);
                 sessionStorage.setItem('quizTotal', totalCount);
 
-                // Show result message with score
-                const scoreText = ` (Score: ${correctCount}/${totalCount})`;
-                document.getElementById('result-message').innerHTML = data.message + '<br>' + scoreText;
+                // Show result message
+                document.getElementById('result-message').innerHTML = data.message;
+
+                // Show XP gained
+                if (data.xp_gained) {
+                    document.getElementById('xp-gained').innerHTML = `+${data.xp_gained} XP earned!`;
+                }
+
+                // Show achievements
+                if (data.achievements && data.achievements.length > 0) {
+                    data.achievements.forEach(achievement => {
+                        showAchievement(achievement);
+                    });
+                }
+
+                // Update difficulty indicator
+                if (data.difficulty) {
+                    document.querySelector('.difficulty-badge').textContent = data.difficulty + ' Mode';
+                }
+
                 document.getElementById('result').style.display = 'block';
 
                 // Disable all options
@@ -201,8 +351,21 @@
                         body: `score=${correctCount}&total=${totalCount}`
                     });
 
+                    const percentage = Math.round(correctCount/totalCount*100);
                     document.getElementById('result-message').innerHTML =
-                        `🎉 Quiz Complete!<br>Final Score: ${correctCount}/${totalCount} (${Math.round(correctCount/totalCount*100)}%)`;
+                        `🎉 Quiz Complete!<br>Final Score: ${correctCount}/${totalCount} (${percentage}%)`;
+
+                    // Show performance-based message
+                    if (percentage >= 90) {
+                        document.getElementById('xp-gained').innerHTML = "🏆 Outstanding performance! Difficulty increasing!";
+                    } else if (percentage >= 70) {
+                        document.getElementById('xp-gained').innerHTML = "✨ Great job! Keep it up!";
+                    } else if (percentage >= 50) {
+                        document.getElementById('xp-gained').innerHTML = "💪 Good effort! Practice makes perfect!";
+                    } else {
+                        document.getElementById('xp-gained').innerHTML = "📚 Keep studying! Difficulty adjusted for better learning.";
+                    }
+
                     document.getElementById('next-btn').textContent = 'Start New Quiz';
                     document.getElementById('next-btn').onclick = function() {
                         sessionStorage.removeItem('quizCorrect');
@@ -220,12 +383,12 @@
             });
         });
     });
-    
-    // Improved confetti for mobile
+
+    // Improved confetti for celebrations
     function createConfetti() {
-        const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#A3BE8C', '#B48EAD'];
-        const confettiCount = 30; // Fewer particles for better mobile performance
-        
+        const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#A3BE8C', '#B48EAD', '#FFD700'];
+        const confettiCount = 40;
+
         for (let i = 0; i < confettiCount; i++) {
             setTimeout(() => {
                 const confetti = document.createElement('div');
@@ -233,12 +396,15 @@
                 confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 confetti.style.left = Math.random() * 100 + '%';
                 confetti.style.top = '-20px';
+                confetti.style.width = Math.random() * 10 + 5 + 'px';
+                confetti.style.height = confetti.style.width;
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
                 confetti.style.animationDuration = (Math.random() * 2 + 1) + 's';
-                
+
                 document.body.appendChild(confetti);
-                
+
                 confetti.addEventListener('animationend', () => confetti.remove());
-            }, i * 30); // Stagger creation for better effect
+            }, i * 30);
         }
     }
 </script>
