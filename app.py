@@ -624,6 +624,33 @@ def edit_milestone(milestone_id):
                          days_until=days_until,
                          words_needed=words_needed)
 
+@app.route('/vocabulary/reset_db')
+def reset_database():
+    """Emergency database reset - creates all missing tables and columns"""
+    try:
+        # Drop and recreate all tables
+        db.drop_all()
+        db.create_all()
+
+        # Create default user
+        default_user = UserProfile()
+        db.session.add(default_user)
+
+        # Add sample milestones
+        milestones = [
+            Milestone(name="Winter Goal", target_date=date(2025, 12, 31), target_words=365),
+            Milestone(name="Spring Goal", target_date=date(2026, 3, 31), target_words=455),
+            Milestone(name="Summer Goal", target_date=date(2026, 6, 30), target_words=545)
+        ]
+        for m in milestones:
+            db.session.add(m)
+
+        db.session.commit()
+
+        return "Database reset successfully! <a href='/vocabulary'>Go to vocabulary</a>"
+    except Exception as e:
+        return f"Database reset error: {str(e)}"
+
 @app.route('/vocabulary/milestones/delete/<int:milestone_id>')
 def delete_milestone(milestone_id):
     """Delete a milestone"""
@@ -640,56 +667,74 @@ def initialize_database():
         # Create all tables (won't affect existing ones)
         db.create_all()
 
-        # Safely add missing columns for existing tables
-        try:
-            # Test if columns exist by trying to query them
-            test_word = VocabularyWord.query.first()
-            if test_word:
-                # Try to access new fields - will error if they don't exist
-                _ = test_word.difficulty_score
-        except:
-            # If error, columns don't exist - need migration
-            try:
-                # Try to add missing columns
-                with db.engine.begin() as conn:
-                    # SQLite doesn't support information_schema, so we try each column
-                    migration_commands = [
-                        "ALTER TABLE vocabulary_word ADD COLUMN difficulty_score FLOAT DEFAULT 50.0",
-                        "ALTER TABLE vocabulary_word ADD COLUMN streak INTEGER DEFAULT 0",
-                        "ALTER TABLE vocabulary_word ADD COLUMN last_response_time FLOAT",
-                        "ALTER TABLE vocabulary_word ADD COLUMN review_interval INTEGER DEFAULT 1",
-                        "ALTER TABLE vocabulary_word ADD COLUMN next_review_date DATE",
-                        "ALTER TABLE vocabulary_word ADD COLUMN synonyms TEXT DEFAULT ''",
-                        "ALTER TABLE vocabulary_word ADD COLUMN antonyms TEXT DEFAULT ''",
-                        "ALTER TABLE vocabulary_word ADD COLUMN example_sentence TEXT DEFAULT ''"
-                    ]
-                    for cmd in migration_commands:
-                        try:
-                            conn.execute(db.text(cmd))
-                        except:
-                            pass  # Column already exists
-            except Exception as e:
-                print(f"Migration warning: {e}")
+        # Check if we need to migrate - PostgreSQL specific
+        with db.engine.begin() as conn:
+            # Check if new columns exist in PostgreSQL
+            check_column = """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'vocabulary_word'
+                AND column_name IN ('difficulty_score', 'streak', 'synonyms', 'antonyms', 'example_sentence')
+            """
+            result = conn.execute(db.text(check_column))
+            existing_columns = {row[0] for row in result}
+
+            # Add missing columns
+            columns_to_add = {
+                'difficulty_score': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS difficulty_score FLOAT DEFAULT 50.0",
+                'streak': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS streak INTEGER DEFAULT 0",
+                'last_response_time': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS last_response_time FLOAT",
+                'review_interval': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS review_interval INTEGER DEFAULT 1",
+                'next_review_date': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS next_review_date DATE",
+                'synonyms': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS synonyms TEXT DEFAULT ''",
+                'antonyms': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS antonyms TEXT DEFAULT ''",
+                'example_sentence': "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS example_sentence TEXT DEFAULT ''"
+            }
+
+            for column_name, alter_cmd in columns_to_add.items():
+                try:
+                    conn.execute(db.text(alter_cmd))
+                    conn.commit()
+                except Exception as e:
+                    # Column might already exist, continue
+                    print(f"Column {column_name} migration note: {e}")
 
         # Ensure UserProfile exists
-        if UserProfile.query.count() == 0:
+        try:
+            if UserProfile.query.count() == 0:
+                default_user = UserProfile()
+                db.session.add(default_user)
+                db.session.commit()
+        except Exception as e:
+            print(f"UserProfile check: {e}")
+            # Table might not exist, create it
+            UserProfile.__table__.create(db.engine, checkfirst=True)
             default_user = UserProfile()
             db.session.add(default_user)
             db.session.commit()
 
         # Add default milestones if they don't exist
-        if Milestone.query.count() == 0:
-            milestones = [
-                Milestone(name="Winter Goal", target_date=date(2025, 12, 31), target_words=365),
-                Milestone(name="Spring Goal", target_date=date(2026, 3, 31), target_words=455),
-                Milestone(name="Summer Goal", target_date=date(2026, 6, 30), target_words=545)
-            ]
-            for m in milestones:
-                db.session.add(m)
-            db.session.commit()
+        try:
+            if Milestone.query.count() == 0:
+                milestones = [
+                    Milestone(name="Winter Goal", target_date=date(2025, 12, 31), target_words=365),
+                    Milestone(name="Spring Goal", target_date=date(2026, 3, 31), target_words=455),
+                    Milestone(name="Summer Goal", target_date=date(2026, 6, 30), target_words=545)
+                ]
+                for m in milestones:
+                    db.session.add(m)
+                db.session.commit()
+        except:
+            pass  # Milestones might already exist
+
     except Exception as e:
         # In serverless, database might not be ready yet
         print(f"Database initialization warning: {e}")
+        # Try a simpler approach - just create tables
+        try:
+            db.create_all()
+        except:
+            pass
 
 # Track if database has been initialized
 _db_initialized = False
@@ -704,6 +749,11 @@ def ensure_database():
             _db_initialized = True
         except Exception as e:
             app.logger.warning(f"Database initialization deferred: {e}")
+            # Try simple table creation as fallback
+            try:
+                db.create_all()
+            except:
+                pass
 
 # For local development, initialize immediately
 if __name__ == '__main__':
