@@ -151,11 +151,17 @@ def view_words():
 
 @app.route('/vocabulary/delete_word/<int:word_id>')
 def delete_word(word_id):
-    """Delete a vocabulary word"""
+    """Delete a vocabulary word - with protection for important words"""
     word = VocabularyWord.query.get_or_404(word_id)
+
+    # Optional: Add protection for high-mastery words
+    if word.mastery_level >= 80:
+        flash(f'Are you sure you want to delete "{word.word}"? It has {word.mastery_level}% mastery!', 'warning')
+
+    word_name = word.word
     db.session.delete(word)
     db.session.commit()
-    flash(f'Deleted "{word.word}"', 'info')
+    flash(f'Deleted "{word_name}"', 'info')
     return redirect(url_for('view_words'))
 
 @app.route('/vocabulary/quiz')
@@ -186,11 +192,11 @@ def check_quiz():
     """Check quiz answer"""
     word_id = request.form.get('word_id', type=int)
     answer_id = request.form.get('answer_id', type=int)
-    
+
     word = VocabularyWord.query.get_or_404(word_id)
     word.times_reviewed += 1
     word.last_reviewed = datetime.now()
-    
+
     is_correct = (word_id == answer_id)
     if is_correct:
         word.times_correct += 1
@@ -200,14 +206,32 @@ def check_quiz():
         word.mastery_level = max(word.mastery_level - 5, 0)
         correct_word = VocabularyWord.query.get(word_id)
         message = f"Not quite. The answer was: {correct_word.definition}"
-    
+
     db.session.commit()
-    
+
     return jsonify({
         'correct': is_correct,
         'message': message,
-        'mastery_level': word.mastery_level
+        'mastery_level': word.mastery_level,
+        'correct_definition': word.definition
     })
+
+@app.route('/vocabulary/quiz/complete', methods=['POST'])
+def complete_quiz():
+    """Record quiz completion"""
+    score = request.form.get('score', type=int)
+    total = request.form.get('total', type=int)
+
+    if score is not None and total is not None:
+        quiz_result = QuizHistory(
+            score=score,
+            total_questions=total,
+            date_taken=datetime.now()
+        )
+        db.session.add(quiz_result)
+        db.session.commit()
+
+    return jsonify({'success': True})
 
 @app.route('/vocabulary/progress')
 def progress():
