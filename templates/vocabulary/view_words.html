@@ -3,55 +3,277 @@
 {% block title %}My Words - Sophia's Vocabulary Trainer{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="margin-bottom: 20px;">
-        <h2 style="color: var(--primary-color); margin-bottom: 15px;">📖 My Words ({{ words|length }})</h2>
-        <div style="margin-bottom: 15px;">
-            <label for="sort" style="font-size: 0.9em; margin-bottom: 5px;">Sort by:</label>
-            <select id="sort" onchange="window.location.href='/words?sort=' + this.value" 
-                    style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #E0E0E0; 
-                           font-family: inherit; font-size: 16px; -webkit-appearance: none; 
-                           background: white url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M10.293%203.293L6%207.586%201.707%203.293A1%201%200%200%200%20.293%204.707l5%205a1%201%200%200%200%201.414%200l5-5a1%201%200%201%200-1.414-1.414z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px center;
-                           background-size: 12px;">
-                <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
-                <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
-                <option value="alpha" {% if sort_by == 'alpha' %}selected{% endif %}>Alphabetical</option>
-                <option value="mastery" {% if sort_by == 'mastery' %}selected{% endif %}>Mastery Level</option>
-            </select>
-        </div>
+<style>
+    /* iOS Safari optimized styles */
+    .ios-card {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1c1c1e;
+        margin: 0;
+    }
+
+    .add-btn {
+        background: #007aff;
+        color: white;
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        border-radius: 20px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .sort-select {
+        width: 100%;
+        padding: 12px;
+        font-size: 17px;
+        border: 1px solid #c6c6c8;
+        border-radius: 12px;
+        background: #f2f2f7;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 8L0 0H12L6 8Z' fill='%238E8E93'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+        margin-bottom: 20px;
+    }
+
+    .word-card {
+        background: #f2f2f7;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .word-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #007aff;
+    }
+
+    .word-card.high-mastery::before {
+        background: #34c759;
+    }
+
+    .word-card.medium-mastery::before {
+        background: #ff9500;
+    }
+
+    .word-card.low-mastery::before {
+        background: #ff3b30;
+    }
+
+    .word-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 12px;
+    }
+
+    .word-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1c1c1e;
+        margin: 0;
+    }
+
+    .word-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: all 0.2s ease;
+    }
+
+    .edit-btn {
+        background: #007aff;
+        color: white;
+    }
+
+    .delete-btn {
+        background: #ff3b30;
+        color: white;
+    }
+
+    .word-definition {
+        font-size: 16px;
+        line-height: 1.5;
+        color: #3a3a3c;
+        margin-bottom: 12px;
+    }
+
+    .word-extras {
+        margin: 16px 0;
+        padding: 12px;
+        background: white;
+        border-radius: 12px;
+    }
+
+    .extra-item {
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .extra-label {
+        font-weight: 600;
+        color: #8e8e93;
+        display: inline-block;
+        width: 80px;
+    }
+
+    .extra-value {
+        color: #1c1c1e;
+    }
+
+    .word-stats {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: #8e8e93;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .empty-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #1c1c1e;
+        margin-bottom: 8px;
+    }
+
+    .empty-text {
+        font-size: 16px;
+        color: #8e8e93;
+        margin-bottom: 24px;
+    }
+</style>
+
+<div class="ios-card">
+    <div class="header-row">
+        <h2 class="page-title">My Words ({{ words|length }})</h2>
+        <a href="{{ url_for('add_word') }}" class="add-btn">
+            <span>+</span> Add Word
+        </a>
     </div>
-    
+
+    <select id="sort" onchange="window.location.href='/vocabulary/words?sort=' + this.value" class="sort-select">
+        <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
+        <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
+        <option value="alpha" {% if sort_by == 'alpha' %}selected{% endif %}>Alphabetical</option>
+        <option value="mastery" {% if sort_by == 'mastery' %}selected{% endif %}>Mastery Level</option>
+    </select>
+
     {% if words %}
-        <div>
-            {% for word in words %}
-            <div class="word-card" style="border-left-color: 
-                 {% if word.mastery_level > 75 %}var(--success-color)
-                 {% elif word.mastery_level > 50 %}var(--secondary-color)
-                 {% elif word.mastery_level > 25 %}var(--accent-color)
-                 {% else %}var(--warning-color){% endif %};">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                    <h3 style="margin: 0;">{{ word.word }}</h3>
-                    <a href="/vocabulary/delete_word/{{ word.id }}" class="btn btn-small"
-                       style="background: #E74C3C; padding: 8px 15px; font-size: 0.85em;"
-                       onclick="return confirm('Delete \'{{ word.word }}\'?')">
-                        🗑️
-                    </a>
-                </div>
-                <p style="margin-bottom: 10px; line-height: 1.5;">{{ word.definition }}</p>
-                <div class="word-stats">
-                    <span>📅 {{ word.date_added.strftime('%b %d') }}</span>
-                    <span>📊 {{ word.mastery_level }}%</span>
-                    <span>✅ {{ word.get_accuracy() }}%</span>
-                    <span>📝 {{ word.times_reviewed }}x</span>
+        {% for word in words %}
+        <div class="word-card {% if word.mastery_level > 75 %}high-mastery{% elif word.mastery_level > 40 %}medium-mastery{% else %}low-mastery{% endif %}">
+            <div class="word-header">
+                <h3 class="word-title">{{ word.word }}</h3>
+                <div class="word-actions">
+                    <a href="{{ url_for('edit_word', word_id=word.id) }}" class="action-btn edit-btn">Edit</a>
+                    <a href="{{ url_for('delete_word', word_id=word.id) }}"
+                       class="action-btn delete-btn"
+                       onclick="return confirm('Delete \'{{ word.word }}\'?')">Delete</a>
                 </div>
             </div>
-            {% endfor %}
+
+            <p class="word-definition">{{ word.definition }}</p>
+
+            {% if word.synonyms or word.antonyms or word.example_sentence %}
+            <div class="word-extras">
+                {% if word.example_sentence %}
+                <div class="extra-item">
+                    <span class="extra-label">Example:</span>
+                    <span class="extra-value">{{ word.example_sentence }}</span>
+                </div>
+                {% endif %}
+                {% if word.synonyms %}
+                <div class="extra-item">
+                    <span class="extra-label">Synonyms:</span>
+                    <span class="extra-value">{{ word.synonyms }}</span>
+                </div>
+                {% endif %}
+                {% if word.antonyms %}
+                <div class="extra-item">
+                    <span class="extra-label">Antonyms:</span>
+                    <span class="extra-value">{{ word.antonyms }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="word-stats">
+                <span class="stat-item">📅 {{ word.date_added.strftime('%b %d, %Y') }}</span>
+                <span class="stat-item">📊 {{ word.mastery_level }}% mastery</span>
+                <span class="stat-item">✅ {{ word.get_accuracy() }}% accuracy</span>
+                <span class="stat-item">📝 {{ word.times_reviewed }} reviews</span>
+                {% if word.streak > 0 %}
+                <span class="stat-item">🔥 {{ word.streak }} streak</span>
+                {% endif %}
+            </div>
         </div>
+        {% endfor %}
     {% else %}
-        <div style="text-align: center; padding: 40px 20px;">
-            <h3 style="color: #999; margin-bottom: 15px;">No words yet!</h3>
-            <p style="margin-bottom: 20px; color: #666;">Start building your vocabulary today.</p>
-            <a href="/add_word" class="btn">➕ Add Your First Word</a>
+        <div class="empty-state">
+            <div class="empty-icon">📚</div>
+            <h3 class="empty-title">No words yet!</h3>
+            <p class="empty-text">Start building your vocabulary today.</p>
+            <a href="{{ url_for('add_word') }}" class="add-btn" style="display: inline-flex; margin: 0 auto;">
+                <span>+</span> Add Your First Word
+            </a>
         </div>
     {% endif %}
 </div>

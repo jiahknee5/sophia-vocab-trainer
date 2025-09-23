@@ -41,6 +41,9 @@ class VocabularyWord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     word = db.Column(db.String(100), nullable=False, unique=True)
     definition = db.Column(db.Text, nullable=False)
+    synonyms = db.Column(db.Text, default='')  # Comma-separated list
+    antonyms = db.Column(db.Text, default='')  # Comma-separated list
+    example_sentence = db.Column(db.Text, default='')  # Example usage
     date_added = db.Column(db.Date, default=date.today)
     times_reviewed = db.Column(db.Integer, default=0)
     times_correct = db.Column(db.Integer, default=0)
@@ -203,21 +206,31 @@ def add_word():
     if request.method == 'POST':
         word = request.form.get('word', '').strip()
         definition = request.form.get('definition', '').strip()
-        
+        synonyms = request.form.get('synonyms', '').strip()
+        antonyms = request.form.get('antonyms', '').strip()
+        example_sentence = request.form.get('example_sentence', '').strip()
+
         if word and definition:
             # Check if word already exists
             existing = VocabularyWord.query.filter_by(word=word).first()
             if existing:
                 flash(f'The word "{word}" already exists!', 'warning')
             else:
-                new_word = VocabularyWord(word=word, definition=definition)
+                new_word = VocabularyWord(
+                    word=word,
+                    definition=definition,
+                    synonyms=synonyms,
+                    antonyms=antonyms,
+                    example_sentence=example_sentence,
+                    next_review_date=date.today() + timedelta(days=1)
+                )
                 db.session.add(new_word)
                 db.session.commit()
                 flash(f'Successfully added "{word}"!', 'success')
                 return redirect(url_for('view_words'))
         else:
             flash('Please provide both word and definition!', 'error')
-    
+
     return render_template('vocabulary/add_word.html')
 
 @app.route('/vocabulary/words')
@@ -235,6 +248,27 @@ def view_words():
         words = VocabularyWord.query.order_by(VocabularyWord.date_added.desc()).all()
     
     return render_template('vocabulary/view_words.html', words=words, sort_by=sort_by)
+
+@app.route('/vocabulary/edit_word/<int:word_id>', methods=['GET', 'POST'])
+def edit_word(word_id):
+    """Edit an existing vocabulary word"""
+    word = VocabularyWord.query.get_or_404(word_id)
+
+    if request.method == 'POST':
+        word.word = request.form.get('word', '').strip()
+        word.definition = request.form.get('definition', '').strip()
+        word.synonyms = request.form.get('synonyms', '').strip()
+        word.antonyms = request.form.get('antonyms', '').strip()
+        word.example_sentence = request.form.get('example_sentence', '').strip()
+
+        if word.word and word.definition:
+            db.session.commit()
+            flash(f'Successfully updated "{word.word}"!', 'success')
+            return redirect(url_for('view_words'))
+        else:
+            flash('Word and definition are required!', 'error')
+
+    return render_template('vocabulary/edit_word.html', word=word)
 
 @app.route('/vocabulary/delete_word/<int:word_id>')
 def delete_word(word_id):
@@ -624,7 +658,10 @@ def initialize_database():
                         "ALTER TABLE vocabulary_word ADD COLUMN streak INTEGER DEFAULT 0",
                         "ALTER TABLE vocabulary_word ADD COLUMN last_response_time FLOAT",
                         "ALTER TABLE vocabulary_word ADD COLUMN review_interval INTEGER DEFAULT 1",
-                        "ALTER TABLE vocabulary_word ADD COLUMN next_review_date DATE"
+                        "ALTER TABLE vocabulary_word ADD COLUMN next_review_date DATE",
+                        "ALTER TABLE vocabulary_word ADD COLUMN synonyms TEXT DEFAULT ''",
+                        "ALTER TABLE vocabulary_word ADD COLUMN antonyms TEXT DEFAULT ''",
+                        "ALTER TABLE vocabulary_word ADD COLUMN example_sentence TEXT DEFAULT ''"
                     ]
                     for cmd in migration_commands:
                         try:

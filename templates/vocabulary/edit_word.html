@@ -1,6 +1,6 @@
 {% extends "vocabulary/base_vocab.html" %}
 
-{% block title %}Add Word - Sophia's Vocabulary Trainer{% endblock %}
+{% block title %}Edit Word - Sophia's Vocabulary Trainer{% endblock %}
 
 {% block content %}
 <style>
@@ -29,7 +29,7 @@
     .form-input {
         width: 100%;
         padding: 16px;
-        font-size: 17px; /* iOS optimal size */
+        font-size: 17px;
         border: 1px solid #c6c6c8;
         border-radius: 12px;
         background: #f2f2f7;
@@ -91,6 +91,22 @@
         -webkit-tap-highlight-color: transparent;
     }
 
+    .btn-danger {
+        background: #ff3b30;
+        color: white;
+        padding: 16px 32px;
+        font-size: 17px;
+        font-weight: 600;
+        border: none;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        width: 100%;
+        margin-top: 12px;
+        -webkit-tap-highlight-color: transparent;
+    }
+
     .divider {
         height: 1px;
         background: #c6c6c8;
@@ -98,21 +114,32 @@
         opacity: 0.3;
     }
 
-    .tips-card {
-        background: linear-gradient(135deg, #007aff, #5ac8fa);
-        color: white;
-        border-radius: 16px;
-        padding: 20px;
-        margin-top: 20px;
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
     }
 
-    .tips-list {
-        margin: 12px 0 0 0;
-        padding-left: 20px;
-        line-height: 1.8;
+    .stat-card {
+        background: #f2f2f7;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
     }
 
-    /* Prevent zoom on input focus in iOS */
+    .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #007aff;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: #8e8e93;
+        margin-top: 4px;
+    }
+
     @media screen and (max-width: 768px) {
         .form-input {
             font-size: 16px;
@@ -122,10 +149,29 @@
 
 <div class="ios-card">
     <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 24px 0; color: #1c1c1e;">
-        Add New Word
+        Edit Word
     </h2>
 
-    <form method="POST" action="{{ url_for('add_word') }}">
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">{{ word.mastery_level }}%</div>
+            <div class="stat-label">Mastery</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ word.times_reviewed }}</div>
+            <div class="stat-label">Reviews</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ word.get_accuracy() }}%</div>
+            <div class="stat-label">Accuracy</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ word.streak }}</div>
+            <div class="stat-label">Streak</div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('edit_word', word_id=word.id) }}">
         <div class="form-group">
             <label for="word" class="form-label">Word *</label>
             <input type="text"
@@ -133,8 +179,7 @@
                    name="word"
                    class="form-input"
                    required
-                   autocomplete="off"
-                   placeholder="e.g., ubiquitous">
+                   value="{{ word.word }}">
         </div>
 
         <div class="form-group">
@@ -142,8 +187,7 @@
             <textarea id="definition"
                       name="definition"
                       class="form-input form-textarea"
-                      required
-                      placeholder="e.g., Present, appearing, or found everywhere"></textarea>
+                      required>{{ word.definition }}</textarea>
         </div>
 
         <div class="divider"></div>
@@ -154,6 +198,7 @@
                    id="synonyms"
                    name="synonyms"
                    class="form-input"
+                   value="{{ word.synonyms or '' }}"
                    placeholder="e.g., omnipresent, universal, pervasive">
             <p class="form-hint">Separate multiple synonyms with commas</p>
         </div>
@@ -164,6 +209,7 @@
                    id="antonyms"
                    name="antonyms"
                    class="form-input"
+                   value="{{ word.antonyms or '' }}"
                    placeholder="e.g., rare, scarce, uncommon">
             <p class="form-hint">Separate multiple antonyms with commas</p>
         </div>
@@ -173,24 +219,17 @@
             <textarea id="example_sentence"
                       name="example_sentence"
                       class="form-input form-textarea"
-                      placeholder="e.g., Smartphones have become ubiquitous in modern society."></textarea>
+                      placeholder="e.g., Smartphones have become ubiquitous in modern society.">{{ word.example_sentence or '' }}</textarea>
             <p class="form-hint">Help remember the word with a memorable example</p>
         </div>
 
         <div style="margin-top: 32px;">
-            <button type="submit" class="btn-primary">Add Word</button>
+            <button type="submit" class="btn-primary">Save Changes</button>
             <a href="{{ url_for('view_words') }}" class="btn-secondary">Cancel</a>
+            <a href="{{ url_for('delete_word', word_id=word.id) }}"
+               class="btn-danger"
+               onclick="return confirm('Are you sure you want to delete this word?')">Delete Word</a>
         </div>
     </form>
-</div>
-
-<div class="tips-card">
-    <h3 style="font-size: 20px; font-weight: 600; margin: 0;">Pro Tips</h3>
-    <ul class="tips-list">
-        <li>Add words you encounter in your reading</li>
-        <li>Include synonyms to build word associations</li>
-        <li>Write example sentences from your studies</li>
-        <li>Review new words within 24 hours for best retention</li>
-    </ul>
 </div>
 {% endblock %}
