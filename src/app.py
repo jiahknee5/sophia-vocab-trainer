@@ -1,6 +1,5 @@
 """
-Sophia's PSAT/SHSAT Vocabulary Trainer
-A simple web application to help Sophia learn vocabulary words for test prep
+Sophia's PSAT/SHSAT Vocabulary Trainer - Root App for Vercel
 """
 
 import os
@@ -14,22 +13,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Determine the correct paths for templates and static files
-import sys
-if 'api' in sys.path[0]:
-    # Running in Vercel
-    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-    static_dir = os.path.join(os.path.dirname(__file__), 'static')
-else:
-    # Running locally
-    template_dir = 'templates'
-    static_dir = 'static'
-
-# Create Flask app
-app = Flask(__name__, 
-            template_folder=template_dir,
-            static_folder=static_dir, 
-            static_url_path='/static')
+# Create Flask app with explicit paths
+app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sophia-vocab-trainer-2024')
 
 # Database configuration
@@ -89,11 +74,9 @@ def health():
         'status': 'ok',
         'database_url': bool(os.environ.get('DATABASE_URL')),
         'template_folder': app.template_folder,
-        'static_folder': app.static_folder,
         'root_path': app.root_path,
-        'templates_exist': os.path.exists(os.path.join(app.root_path, app.template_folder or 'templates')),
-        'home_template_exists': os.path.exists(os.path.join(app.root_path, app.template_folder or 'templates', 'home.html')),
-        'cwd': os.getcwd()
+        'cwd': os.getcwd(),
+        'dir_contents': os.listdir('.')
     })
 
 @app.route('/')
@@ -259,23 +242,80 @@ def milestones():
     """View and manage milestones"""
     milestones = Milestone.query.order_by(Milestone.target_date).all()
     total_words = VocabularyWord.query.count()
-    
+
     milestone_data = []
     for milestone in milestones:
         days_until = (milestone.target_date - date.today()).days
         words_needed = milestone.target_words - total_words
         words_per_day = words_needed / days_until if days_until > 0 else 0
-        
+
         milestone_data.append({
             'milestone': milestone,
             'days_until': days_until,
             'words_needed': max(0, words_needed),
             'words_per_day': max(1, int(words_per_day + 0.5))  # Round up
         })
-    
-    return render_template('vocabulary/milestones.html', 
+
+    return render_template('vocabulary/milestones.html',
                          milestone_data=milestone_data,
                          total_words=total_words)
+
+@app.route('/vocabulary/milestones/add', methods=['GET', 'POST'])
+def add_milestone():
+    """Add a new milestone"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        target_date_str = request.form.get('target_date')
+        target_words = request.form.get('target_words', type=int)
+
+        if name and target_date_str and target_words:
+            try:
+                target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+                new_milestone = Milestone(name=name, target_date=target_date, target_words=target_words)
+                db.session.add(new_milestone)
+                db.session.commit()
+                flash(f'Successfully added milestone "{name}"!', 'success')
+                return redirect(url_for('milestones'))
+            except ValueError:
+                flash('Invalid date format!', 'error')
+        else:
+            flash('Please fill in all fields!', 'error')
+
+    return render_template('vocabulary/add_milestone.html')
+
+@app.route('/vocabulary/milestones/edit/<int:milestone_id>', methods=['GET', 'POST'])
+def edit_milestone(milestone_id):
+    """Edit an existing milestone"""
+    milestone = Milestone.query.get_or_404(milestone_id)
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        target_date_str = request.form.get('target_date')
+        target_words = request.form.get('target_words', type=int)
+
+        if name and target_date_str and target_words:
+            try:
+                milestone.name = name
+                milestone.target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+                milestone.target_words = target_words
+                db.session.commit()
+                flash(f'Successfully updated milestone "{name}"!', 'success')
+                return redirect(url_for('milestones'))
+            except ValueError:
+                flash('Invalid date format!', 'error')
+        else:
+            flash('Please fill in all fields!', 'error')
+
+    return render_template('vocabulary/edit_milestone.html', milestone=milestone)
+
+@app.route('/vocabulary/milestones/delete/<int:milestone_id>')
+def delete_milestone(milestone_id):
+    """Delete a milestone"""
+    milestone = Milestone.query.get_or_404(milestone_id)
+    db.session.delete(milestone)
+    db.session.commit()
+    flash(f'Deleted milestone "{milestone.name}"', 'info')
+    return redirect(url_for('milestones'))
 
 # Initialize database and add default milestones
 def initialize_database():
@@ -316,5 +356,4 @@ if __name__ == '__main__':
     with app.app_context():
         initialize_database()
     # Run on all interfaces for Tailscale access
-    # use_reloader=False to avoid path issues
-    app.run(host='0.0.0.0', port=5005, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5005, debug=True)

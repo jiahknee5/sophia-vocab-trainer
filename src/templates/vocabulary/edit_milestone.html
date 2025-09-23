@@ -1,0 +1,68 @@
+{% extends "vocabulary/base_vocab.html" %}
+
+{% block title %}Edit Goal - Sophia's Vocabulary Trainer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: var(--primary-color); margin-bottom: 30px;">✏️ Edit Goal</h2>
+
+    <form method="POST" action="{{ url_for('edit_milestone', milestone_id=milestone.id) }}">
+        <div style="margin-bottom: 20px;">
+            <label for="name" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--primary-color);">
+                Goal Name:
+            </label>
+            <input type="text" id="name" name="name" required
+                   value="{{ milestone.name }}"
+                   placeholder="e.g., Summer Goal, PSAT Prep"
+                   style="width: 100%; padding: 12px; border: 2px solid #E0E0E0;
+                          border-radius: 10px; font-size: 16px; font-family: inherit;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="target_date" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--primary-color);">
+                Target Date:
+            </label>
+            <input type="date" id="target_date" name="target_date" required
+                   value="{{ milestone.target_date.strftime('%Y-%m-%d') }}"
+                   style="width: 100%; padding: 12px; border: 2px solid #E0E0E0;
+                          border-radius: 10px; font-size: 16px; font-family: inherit;">
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <label for="target_words" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--primary-color);">
+                Target Number of Words:
+            </label>
+            <input type="number" id="target_words" name="target_words" required min="1"
+                   value="{{ milestone.target_words }}"
+                   placeholder="e.g., 100"
+                   style="width: 100%; padding: 12px; border: 2px solid #E0E0E0;
+                          border-radius: 10px; font-size: 16px; font-family: inherit;">
+            <p style="margin-top: 8px; color: #666; font-size: 0.9em;">
+                Tip: Aim for about 1 word per day for steady progress!
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button type="submit" class="btn" style="background: var(--primary-color);">
+                ✅ Save Changes
+            </button>
+            <a href="{{ url_for('milestones') }}" class="btn" style="background: #95a5a6;">
+                ❌ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="background: linear-gradient(135deg, var(--secondary-color), var(--accent-color)); color: white;">
+    <h3 style="margin-bottom: 15px;">📊 Current Progress</h3>
+    {% set total_words = get_flashed_messages(category_filter=["total_words"])|first or 0 %}
+    <p style="line-height: 1.8;">
+        You currently have <strong>{{ total_words }}</strong> words in your vocabulary.
+        {% if total_words < milestone.target_words %}
+            You need <strong>{{ milestone.target_words - total_words }}</strong> more words to reach this goal.
+        {% else %}
+            You've already exceeded this goal by <strong>{{ total_words - milestone.target_words }}</strong> words! 🎉
+        {% endif %}
+    </p>
+</div>
+{% endblock %}
