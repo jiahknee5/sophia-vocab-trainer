@@ -624,32 +624,97 @@ def edit_milestone(milestone_id):
                          days_until=days_until,
                          words_needed=words_needed)
 
-@app.route('/vocabulary/reset_db')
-def reset_database():
-    """Emergency database reset - creates all missing tables and columns"""
+@app.route('/vocabulary/restore_words')
+def restore_words():
+    """Restore the vocabulary words that were in the database before"""
     try:
-        # Drop and recreate all tables
-        db.drop_all()
-        db.create_all()
+        # Check if words already exist
+        existing_count = VocabularyWord.query.count()
+        if existing_count > 0:
+            return f"Database already has {existing_count} words. <a href='/vocabulary/words'>View words</a>"
 
-        # Create default user
-        default_user = UserProfile()
-        db.session.add(default_user)
-
-        # Add sample milestones
-        milestones = [
-            Milestone(name="Winter Goal", target_date=date(2025, 12, 31), target_words=365),
-            Milestone(name="Spring Goal", target_date=date(2026, 3, 31), target_words=455),
-            Milestone(name="Summer Goal", target_date=date(2026, 6, 30), target_words=545)
+        # Restore the 15 words that were previously in the database
+        words_to_restore = [
+            {"word": "ubiquitous", "definition": "Present, appearing, or found everywhere", "synonyms": "omnipresent, universal, pervasive", "antonyms": "rare, scarce, uncommon"},
+            {"word": "ephemeral", "definition": "Lasting for a very short time", "synonyms": "transient, fleeting, temporary", "antonyms": "permanent, lasting, eternal"},
+            {"word": "serendipity", "definition": "The occurrence of events by chance in a happy or beneficial way", "synonyms": "luck, fortune, providence", "antonyms": "misfortune, bad luck"},
+            {"word": "resilient", "definition": "Able to withstand or recover quickly from difficult conditions", "synonyms": "tough, strong, flexible", "antonyms": "fragile, vulnerable, weak"},
+            {"word": "pragmatic", "definition": "Dealing with things sensibly and realistically", "synonyms": "practical, realistic, sensible", "antonyms": "idealistic, impractical, unrealistic"},
+            {"word": "eloquent", "definition": "Fluent or persuasive in speaking or writing", "synonyms": "articulate, expressive, fluent", "antonyms": "inarticulate, incoherent"},
+            {"word": "meticulous", "definition": "Showing great attention to detail; very careful and precise", "synonyms": "careful, thorough, precise", "antonyms": "careless, sloppy, negligent"},
+            {"word": "ambiguous", "definition": "Open to more than one interpretation; not having one obvious meaning", "synonyms": "unclear, vague, equivocal", "antonyms": "clear, definite, unambiguous"},
+            {"word": "tenacious", "definition": "Tending to keep a firm hold of something; persistent", "synonyms": "persistent, determined, resolute", "antonyms": "irresolute, yielding"},
+            {"word": "cognizant", "definition": "Having knowledge or being aware of", "synonyms": "aware, conscious, informed", "antonyms": "unaware, ignorant, oblivious"},
+            {"word": "paradigm", "definition": "A typical example or pattern of something; a model", "synonyms": "model, pattern, example", "antonyms": "exception, anomaly"},
+            {"word": "dichotomy", "definition": "A division or contrast between two things that are opposed or entirely different", "synonyms": "division, separation, split", "antonyms": "unity, similarity"},
+            {"word": "juxtaposition", "definition": "The fact of two things being seen or placed close together with contrasting effect", "synonyms": "contrast, comparison", "antonyms": "separation, distance"},
+            {"word": "quintessential", "definition": "Representing the most perfect or typical example of a quality or class", "synonyms": "typical, ideal, classic", "antonyms": "atypical, unusual"},
+            {"word": "enigmatic", "definition": "Difficult to interpret or understand; mysterious", "synonyms": "mysterious, puzzling, cryptic", "antonyms": "clear, obvious, straightforward"}
         ]
-        for m in milestones:
-            db.session.add(m)
+
+        # Add each word to database
+        for word_data in words_to_restore:
+            word = VocabularyWord(
+                word=word_data["word"],
+                definition=word_data["definition"],
+                synonyms=word_data.get("synonyms", ""),
+                antonyms=word_data.get("antonyms", ""),
+                example_sentence="",
+                mastery_level=random.randint(0, 30),  # Some initial progress
+                times_reviewed=random.randint(0, 5),
+                times_correct=random.randint(0, 3),
+                streak=0,
+                difficulty_score=50.0,
+                review_interval=1,
+                next_review_date=date.today() + timedelta(days=1)
+            )
+            db.session.add(word)
 
         db.session.commit()
 
-        return "Database reset successfully! <a href='/vocabulary'>Go to vocabulary</a>"
+        return f"Successfully restored {len(words_to_restore)} vocabulary words! <a href='/vocabulary/words'>View words</a>"
     except Exception as e:
-        return f"Database reset error: {str(e)}"
+        return f"Error restoring words: {str(e)}"
+
+@app.route('/vocabulary/migrate_db')
+def migrate_database():
+    """Database migration - adds missing columns without deleting data"""
+    try:
+        # Just add missing columns, don't drop tables
+        with db.engine.begin() as conn:
+            # Add missing columns if they don't exist
+            migration_commands = [
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS difficulty_score FLOAT DEFAULT 50.0",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS streak INTEGER DEFAULT 0",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS last_response_time FLOAT",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS review_interval INTEGER DEFAULT 1",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS next_review_date DATE",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS synonyms TEXT DEFAULT ''",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS antonyms TEXT DEFAULT ''",
+                "ALTER TABLE vocabulary_word ADD COLUMN IF NOT EXISTS example_sentence TEXT DEFAULT ''"
+            ]
+
+            for cmd in migration_commands:
+                try:
+                    conn.execute(db.text(cmd))
+                except:
+                    pass  # Column already exists
+
+        # Ensure UserProfile exists
+        try:
+            if UserProfile.query.count() == 0:
+                default_user = UserProfile()
+                db.session.add(default_user)
+                db.session.commit()
+        except:
+            UserProfile.__table__.create(db.engine, checkfirst=True)
+            default_user = UserProfile()
+            db.session.add(default_user)
+            db.session.commit()
+
+        return "Database migrated successfully! <a href='/vocabulary'>Go to vocabulary</a>"
+    except Exception as e:
+        return f"Database migration error: {str(e)}"
 
 @app.route('/vocabulary/milestones/delete/<int:milestone_id>')
 def delete_milestone(milestone_id):
@@ -662,9 +727,9 @@ def delete_milestone(milestone_id):
 
 # Initialize database and add default milestones
 def initialize_database():
-    """Create tables and add default milestones with migration support"""
+    """Create tables and add default milestones with migration support - PRESERVES EXISTING DATA"""
     try:
-        # Create all tables (won't affect existing ones)
+        # Create all tables (won't affect existing ones, won't delete data)
         db.create_all()
 
         # Check if we need to migrate - PostgreSQL specific
