@@ -256,7 +256,7 @@
             {% endif %}
 
             <div class="word-stats">
-                <span class="stat-item">📅 {{ word.date_added.strftime('%b %d, %Y') }}</span>
+                <span class="stat-item">📅 {{ word.date_added.strftime('%b %d') }}</span>
                 <span class="stat-item">📊 {{ word.mastery_level }}% mastery</span>
                 <span class="stat-item">✅ {{ word.get_accuracy() }}% accuracy</span>
                 <span class="stat-item">📝 {{ word.times_reviewed }} reviews</span>
