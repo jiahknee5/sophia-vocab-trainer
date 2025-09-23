@@ -74,8 +74,9 @@
             
             <div class="progress-bar" style="height: 35px;">
                 {% set progress = (total_words / data.milestone.target_words * 100) if data.milestone.target_words > 0 else 0 %}
-                <div class="progress-fill" style="width: {{ min(progress, 100) }}%">
-                    {{ "%.1f"|format(min(progress, 100)) }}%
+                {% set capped_progress = progress if progress < 100 else 100 %}
+                <div class="progress-fill" style="width: {{ capped_progress }}%">
+                    {{ "%.1f"|format(capped_progress) }}%
                 </div>
             </div>
         </div>
