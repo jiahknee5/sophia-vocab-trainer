@@ -31,8 +31,8 @@
                  {% else %}var(--warning-color){% endif %};">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                     <h3 style="margin: 0;">{{ word.word }}</h3>
-                    <a href="/delete_word/{{ word.id }}" class="btn btn-small" 
-                       style="background: #E74C3C; padding: 8px 15px; font-size: 0.85em;" 
+                    <a href="/vocabulary/delete_word/{{ word.id }}" class="btn btn-small"
+                       style="background: #E74C3C; padding: 8px 15px; font-size: 0.85em;"
                        onclick="return confirm('Delete \'{{ word.word }}\'?')">
                         🗑️
                     </a>
