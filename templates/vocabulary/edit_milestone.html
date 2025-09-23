@@ -41,8 +41,8 @@
             <div id="progress-info" style="margin-top: 10px; padding: 10px; background: #f0f9ff; border-radius: 8px; font-size: 0.9em;">
                 <p style="margin: 5px 0;">📊 Current words: <strong>{{ total_words }}</strong></p>
                 <p style="margin: 5px 0;">📅 Days until target: <strong>{{ days_until }}</strong> days</p>
-                <p style="margin: 5px 0;" id="words-needed">📝 Words needed: <strong>{{ max(0, milestone.target_words - total_words) }}</strong></p>
-                <p style="margin: 5px 0;" id="daily-rate">⏱️ Daily rate needed: <strong>{{ "%.1f"|format(max(0, milestone.target_words - total_words) / max(1, days_until)) }}</strong> words/day</p>
+                <p style="margin: 5px 0;" id="words-needed">📝 Words needed: <strong>{{ words_needed if words_needed > 0 else 0 }}</strong></p>
+                <p style="margin: 5px 0;" id="daily-rate">⏱️ Daily rate needed: <strong>{{ "%.1f"|format((words_needed if words_needed > 0 else 0) / (days_until if days_until > 0 else 1)) }}</strong> words/day</p>
             </div>
         </div>
 
